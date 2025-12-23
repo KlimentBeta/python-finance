@@ -4,123 +4,7 @@ from PyQt6.QtWidgets import (QFrame, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit
                              QDialogButtonBox, QFormLayout)
 from PyQt6.QtCore import Qt, QDate, QTime, QDateTime
 from PyQt6.QtGui import QFont, QAction, QColor, QDoubleValidator
-
-class EditTransactionDialog(QDialog):
-    """Диалог редактирования транзакции"""
-    
-    def __init__(self, transaction_data, parent=None):
-        super().__init__(parent)
-        self.transaction_data = transaction_data
-        self.setWindowTitle("Редактирование транзакции")
-        self.setFixedSize(400, 300)
-        self.initUI()
-        
-    def initUI(self):
-        layout = QFormLayout(self)
-        
-        # ID транзакции (только для информации)
-        self.id_label = QLabel(f"ID: {self.transaction_data['id']}")
-        self.id_label.setFont(QFont('Arial', 10, QFont.Weight.Bold))
-        layout.addRow("ID транзакции:", self.id_label)
-        
-        # Дата
-        self.date_edit = QDateEdit()
-        try:
-            # Парсим дату из формата YYYY-MM-DD
-            date_parts = self.transaction_data['date'].split('-')
-            if len(date_parts) == 3:
-                year, month, day = int(date_parts[0]), int(date_parts[1]), int(date_parts[2])
-                self.date_edit.setDate(QDate(year, month, day))
-        except:
-            self.date_edit.setDate(QDate.currentDate())
-        
-        self.date_edit.setCalendarPopup(True)
-        self.date_edit.setMaximumDate(QDate.currentDate())  # Запрещаем будущие даты
-        layout.addRow("Дата:", self.date_edit)
-        
-        # Время
-        self.time_edit = QTimeEdit()
-        try:
-            # Парсим время из формата HH:MM:SS
-            time_parts = self.transaction_data['time'].split(':')
-            if len(time_parts) >= 2:
-                hour, minute = int(time_parts[0]), int(time_parts[1])
-                self.time_edit.setTime(QTime(hour, minute))
-        except:
-            self.time_edit.setTime(QTime.currentTime())
-        
-        layout.addRow("Время:", self.time_edit)
-        
-        # Доходы
-        self.income_edit = QLineEdit()
-        self.income_edit.setText(str(self.transaction_data['income']))
-        # self.income_edit.setValidator(QDoubleValidator(0, 9999999.99, 2))
-        self.income_edit.setPlaceholderText("0.00")
-        layout.addRow("Доходы:", self.income_edit)
-        
-        # Расходы
-        self.expense_edit = QLineEdit()
-        self.expense_edit.setText(str(self.transaction_data['expense']))
-        # self.expense_edit.setValidator(QDoubleValidator(0, 9999999.99, 2))
-        self.expense_edit.setPlaceholderText("0.00")
-        layout.addRow("Расходы:", self.expense_edit)
-        
-        # Кнопки
-        button_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
-        button_box.accepted.connect(self.validate_and_accept)
-        button_box.rejected.connect(self.reject)
-        layout.addRow(button_box)
-        
-    def validate_and_accept(self):
-        """Валидация данных и принятие диалога"""
-        income_text = self.income_edit.text().strip()
-        expense_text = self.expense_edit.text().strip()
-        
-        # Проверка на пустые поля
-        if not income_text and not expense_text:
-            QMessageBox.warning(self, "Ошибка", "Заполните хотя бы одно поле: доходы или расходы")
-            return
-        
-        # Валидация числовых данных
-        try:
-            income = float(income_text) if income_text else 0.0
-            expense = float(expense_text) if expense_text else 0.0
-            
-            if income < 0 or expense < 0:
-                QMessageBox.warning(self, "Ошибка", "Значения не могут быть отрицательными")
-                return
-                
-            if income == 0 and expense == 0:
-                QMessageBox.warning(self, "Ошибка", "Хотя бы одно значение должно быть больше 0")
-                return
-                
-        except ValueError:
-            QMessageBox.warning(self, "Ошибка", "Введите корректные числовые значения")
-            return
-        
-        # Проверка даты и времени
-        selected_date = self.date_edit.date()
-        selected_time = self.time_edit.time()
-        current_datetime = QDateTime.currentDateTime()
-        selected_datetime = QDateTime(selected_date, selected_time)
-        
-        if selected_datetime > current_datetime:
-            QMessageBox.warning(self, "Ошибка", "Нельзя устанавливать будущую дату и время")
-            return
-        
-        self.accept()
-    
-    def get_updated_data(self):
-        """Возвращает обновленные данные"""
-        return {
-            'id': self.transaction_data['id'],
-            'date': self.date_edit.date().toString("yyyy-MM-dd"),
-            'time': self.time_edit.time().toString("HH:mm:ss"),
-            'income': float(self.income_edit.text()) if self.income_edit.text().strip() else 0.0,
-            'expense': float(self.expense_edit.text()) if self.expense_edit.text().strip() else 0.0
-        }
+from edit_transaction import EditTransactionDialog
 
 class CenterPanel(QFrame):
     def __init__(self):
@@ -262,6 +146,26 @@ class CenterPanel(QFrame):
         
         amounts_layout.addLayout(income_layout)
         amounts_layout.addLayout(expense_layout)
+
+        category_layout = QVBoxLayout()
+        category_label = QLabel('Категория:')
+        category_label.setFont(QFont('Arial', 10, QFont.Weight.Bold))
+        self.category_input = QLineEdit()
+        self.category_input.setPlaceholderText('Например: Продукты, Зарплата...')
+        self.category_input.setStyleSheet("""
+            QLineEdit {
+                padding: 8px;
+                font-size: 12px;
+                border: 2px solid #6c757d;
+                border-radius: 4px;
+                background-color: white;
+            }
+        """)
+        category_layout.addWidget(category_label)
+        category_layout.addWidget(self.category_input)
+        
+        amounts_layout.addLayout(category_layout)
+        
         amounts_layout.addWidget(self.submit_button)
         
         input_layout.addLayout(amounts_layout)
@@ -330,16 +234,17 @@ class CenterPanel(QFrame):
         
         # Таблица транзакций
         self.transactions_table = QTableWidget()
-        self.transactions_table.setColumnCount(5)  # Добавляем столбец для ID
-        self.transactions_table.setHorizontalHeaderLabels(['ID', 'Дата', 'Время', 'Доходы', 'Расходы'])
+        self.transactions_table.setColumnCount(6)  
+        self.transactions_table.setHorizontalHeaderLabels(['ID', 'Дата', 'Время', 'Категория', 'Доходы', 'Расходы'])  
         
         # Настройка таблицы
         header = self.transactions_table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)  # ID
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Дата
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)  # Дата
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)  # Время
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)  # Доходы
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)  # Расходы
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)          # ← Категория (раньше было 1 → Stretch)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)  # Доходы
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)  # Расходы
         
         self.transactions_table.setStyleSheet("""
             QTableWidget {
@@ -411,33 +316,37 @@ class CenterPanel(QFrame):
         layout.addLayout(bulk_delete_layout)
     
     def update_table(self, transactions):
-        """Обновление таблицы транзакций"""
-        self.transactions_table.setRowCount(len(transactions))
-        
-        for row, transaction in enumerate(transactions):
-            # ID
-            self.transactions_table.setItem(row, 0, QTableWidgetItem(str(transaction['id'])))
-            # Дата (форматируем для отображения)
-            display_date = self.format_date_for_display(transaction['date'])
-            self.transactions_table.setItem(row, 1, QTableWidgetItem(display_date))
-            # Время
-            self.transactions_table.setItem(row, 2, QTableWidgetItem(transaction['time']))
-            # Доходы
-            income_item = QTableWidgetItem(f"{transaction['income']:.2f} руб.")
-            self.transactions_table.setItem(row, 3, income_item)
-            # Расходы
-            expense_item = QTableWidgetItem(f"{transaction['expense']:.2f} руб.")
-            self.transactions_table.setItem(row, 4, expense_item)
-            
-            # Подсветка строк в зависимости от типа операции
-            if transaction['income'] > 0:
-                income_item.setBackground(QColor(144, 238, 144))  # lightGreen
-            if transaction['expense'] > 0:
-                expense_item.setBackground(QColor(240, 128, 128))  # lightCoral
-        
-        # Обновляем счетчик записей
-        self.records_count_label.setText(f'Записей: {len(transactions)}')
-        self.delete_all_button.setEnabled(len(transactions) > 0)
+            self.transactions_table.setRowCount(len(transactions))
+
+            for row, transaction in enumerate(transactions):
+                # ID
+                self.transactions_table.setItem(row, 0, QTableWidgetItem(str(transaction['id'])))
+                # Дата (форматируем для отображения)
+                display_date = self.format_date_for_display(transaction['date'])
+                self.transactions_table.setItem(row, 1, QTableWidgetItem(display_date))
+                # Время
+                self.transactions_table.setItem(row, 2, QTableWidgetItem(transaction['time']))
+                # 🔹 Категория ← НОВЫЙ СТОЛБЕЦ
+                category = transaction.get('category', '') or '—'
+                self.transactions_table.setItem(row, 3, QTableWidgetItem(category))
+                # Доходы → СТОЛБЕЦ 4 (был 3)
+                income_item = QTableWidgetItem(f"{transaction['income']:.2f} руб.")
+                self.transactions_table.setItem(row, 4, income_item)
+                # Расходы → СТОЛБЕЦ 5 (был 4)
+                expense_item = QTableWidgetItem(f"{transaction['expense']:.2f} руб.")
+                self.transactions_table.setItem(row, 5, expense_item)
+
+                # Подсветка — тоже обнови индексы
+                if transaction['income'] > 0:
+                    income_item.setBackground(QColor(144, 238, 144))  # lightGreen
+                    # Опционально: подсветить категорию
+                    self.transactions_table.item(row, 3).setBackground(QColor(220, 255, 220))
+                if transaction['expense'] > 0:
+                    expense_item.setBackground(QColor(240, 128, 128))  # lightCoral
+                    self.transactions_table.item(row, 3).setBackground(QColor(255, 220, 220))
+
+            self.records_count_label.setText(f'Записей: {len(transactions)}')
+            self.delete_all_button.setEnabled(len(transactions) > 0)
     
     def format_date_for_display(self, db_date):
         """Форматирует дату из БД для отображения"""
@@ -521,14 +430,16 @@ class CenterPanel(QFrame):
             id_item = self.transactions_table.item(current_row, 0)
             date_item = self.transactions_table.item(current_row, 1)
             time_item = self.transactions_table.item(current_row, 2)
-            income_item = self.transactions_table.item(current_row, 3)
-            expense_item = self.transactions_table.item(current_row, 4)
+            category_item = self.transactions_table.item(current_row, 3)  # ← НОВЫЙ
+            income_item = self.transactions_table.item(current_row, 4)   # ← БЫЛ 3
+            expense_item = self.transactions_table.item(current_row, 5)  # ← БЫЛ 4
             
-            if all([id_item, date_item, time_item, income_item, expense_item]):
+            if all([id_item, date_item, time_item, category_item, income_item, expense_item]):
                 return {
                     'id': id_item.text(),
-                    'date': self.parse_display_date(date_item.text()),  # Конвертируем обратно в YYYY-MM-DD
+                    'date': self.parse_display_date(date_item.text()),
                     'time': time_item.text(),
+                    'category': category_item.text().strip() or '',  # ← НОВОЕ
                     'income': float(income_item.text().replace(' руб.', '').strip()),
                     'expense': float(expense_item.text().replace(' руб.', '').strip())
                 }
@@ -550,10 +461,12 @@ class CenterPanel(QFrame):
         """Подтверждение удаления транзакции"""
         transaction_info = self.get_selected_transaction_info()
         if transaction_info:
+            category_display = transaction_info['category'] if transaction_info['category'] else "—"
             message = (f"Удалить транзакцию?\n\n"
                       f"ID: {transaction_info['id']}\n"
                       f"Дата: {transaction_info['date']}\n"
                       f"Время: {transaction_info['time']}\n"
+                      f"Категория: {category_display}\n"  # ← ДОБАВЛЕНО
                       f"Доход: {transaction_info['income']:.2f} руб.\n"
                       f"Расход: {transaction_info['expense']:.2f} руб.")
         else:

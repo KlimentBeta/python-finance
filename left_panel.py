@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QFrame, QVBoxLayout, QLabel, QComboBox, QDateEdit, QPushButton
+from PyQt6.QtWidgets import QFrame, QVBoxLayout, QLabel, QComboBox, QDateEdit, QPushButton, QHBoxLayout 
 from PyQt6.QtCore import QDate, Qt
 from PyQt6.QtGui import QFont
 
@@ -90,6 +90,24 @@ class LeftPanel(QFrame):
         layout.addWidget(self.end_date)
         
         layout.addSpacing(15)
+
+        # --- Фильтр по категории ---
+        category_filter_layout = QHBoxLayout()
+
+        category_label = QLabel("Категория:")
+        category_label.setFont(QFont('Arial', 10, QFont.Weight.Bold))
+        category_filter_layout.addWidget(category_label)
+
+        self.category_filter_combo = QComboBox()  # ← СОЗДАЁМ АТРИБУТ
+        self.category_filter_combo.addItem("Все")
+        self.category_filter_combo.addItem("Продукты")
+        self.category_filter_combo.addItem("Транспорт")
+        self.category_filter_combo.addItem("Зарплата")
+        self.category_filter_combo.addItem("Развлечения")
+        self.category_filter_combo.setEditable(True)  # можно вводить своё
+        category_filter_layout.addWidget(self.category_filter_combo)
+
+        layout.addLayout(category_filter_layout)
         
         # Кнопка применения фильтра
         self.apply_filter_btn = QPushButton('Применить фильтр')
@@ -128,6 +146,8 @@ class LeftPanel(QFrame):
         layout.addWidget(self.reset_filter_btn)
         
         layout.addStretch()
+
+        
     
     def reset_filters(self):
         """Сброс фильтров к значениям по умолчанию"""
@@ -146,3 +166,14 @@ class LeftPanel(QFrame):
         filter_type = filter_types[period_index]
         
         return filter_type, start_date, end_date
+    
+
+    def get_selected_category(self) -> str | None:
+        text = self.category_filter_combo.currentText()
+        return None if text == "Все" else text
+    
+    def update_category_filter_options(self, categories: list[str]):
+        self.category_filter_combo.clear()
+        self.category_filter_combo.addItem("Все")
+        for cat in sorted(set(c for c in categories if c)):
+            self.category_filter_combo.addItem(cat)
